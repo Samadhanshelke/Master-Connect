@@ -1,0 +1,230 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String   @id @default(cuid())
+  email               String   @unique
+  passwordHash        String?
+  name                String
+  location            String   @default("")
+  bio                 String   @default("")
+  role                String   @default("citizen")
+  onboardingCompleted Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  posts           Post[]
+  comments        Comment[]
+  postLikes       PostLike[]
+  shops           Shop[]
+  jobs            Job[]
+  banners         Banner[]
+  messages        Message[]
+  roomMembers     RoomMember[]
+  reports         Report[]         @relation("Reporter")
+  authoredReports Report[]         @relation("ReportedAuthor")
+  notifications   Notification[]   @relation("Recipient")
+  actorNotes      Notification[]   @relation("Actor")
+  citiesCreated   City[]
+  following       Follow[]         @relation("Follower")
+  followers       Follow[]         @relation("Following")
+  bookmarks       Bookmark[]
+}
+
+model City {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  createdBy String
+  creator   User     @relation(fields: [createdBy], references: [id])
+}
+
+model Post {
+  id         String    @id @default(cuid())
+  authorId   String
+  authorName String
+  content    String
+  visibility String    @default("local")
+  location   String    @default("")
+  createdAt  DateTime  @default(now())
+  attachment String?
+  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments   Comment[]
+  likes      PostLike[]
+  reports    Report[]
+  bookmarks  Bookmark[]
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  postId     String
+  authorId   String
+  user       String
+  text       String
+  createdAt  DateTime @default(now())
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model PostLike {
+  postId String
+  userId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+}
+
+model Shop {
+  id            String     @id @default(cuid())
+  ownerId       String
+  ownerName     String
+  name          String
+  category      String     @default("Grocery")
+  description   String     @default("")
+  location      String     @default("")
+  city          String
+  contactNumber String     @default("")
+  bannerImage   String?
+  images        String     @default("[]")
+  openingTime   String     @default("9:00 AM")
+  closingTime   String     @default("8:00 PM")
+  createdAt     DateTime   @default(now())
+  owner         User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  items         ShopItem[]
+}
+
+model ShopItem {
+  id          String @id @default(cuid())
+  shopId      String
+  name        String
+  price       String
+  description String @default("")
+  type        String @default("product")
+  shop        Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+}
+
+model Job {
+  id        String   @id @default(cuid())
+  ownerId   String
+  orgName   String
+  position  String
+  contact   String   @default("")
+  address   String   @default("")
+  city      String
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+model Banner {
+  id            String    @id @default(cuid())
+  ownerId       String
+  ownerName     String
+  date          String
+  imageUri      String    @default("")
+  status        String    @default("pending")
+  paymentStatus String    @default("unpaid")
+  price         Int       @default(499)
+  createdAt     DateTime  @default(now())
+  paidAt        DateTime?
+  owner         User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+model Room {
+  id          String       @id
+  name        String
+  city        String
+  type        String       @default("group")
+  createdAt   DateTime     @default(now())
+  members     RoomMember[]
+  messages    Message[]
+}
+
+model RoomMember {
+  roomId String
+  userId String
+  name   String
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([roomId, userId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  roomId     String
+  authorId   String
+  authorName String
+  text       String   @default("")
+  attachment String?
+  createdAt  DateTime @default(now())
+  room       Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reports    MessageReport[]
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  postId     String
+  reporterId String
+  authorId   String
+  content    String
+  status     String   @default("open")
+  createdAt  DateTime @default(now())
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter   User     @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  author     User     @relation("ReportedAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  clientKey   String?  @unique
+  type        String
+  recipientId String
+  actorId     String
+  actorName   String
+  message     String
+  postId      String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  recipient   User     @relation("Recipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User     @relation("Actor", fields: [actorId], references: [id], onDelete: Cascade)
+}
+
+model Follow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+}
+
+model Bookmark {
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+}
+
+model MessageReport {
+  id         String   @id @default(cuid())
+  messageId  String
+  reporterId String
+  createdAt  DateTime @default(now())
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, reporterId])
+}

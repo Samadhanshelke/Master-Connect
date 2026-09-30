@@ -1,0 +1,33 @@
+{
+  "name": "master-connect-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web,admin -c green,cyan,magenta \"npm run dev:api\" \"npm run dev:web\" \"npm run dev:admin\"",
+    "dev:api": "npm run start:dev -w @master-connect/api",
+    "dev:web": "npm run dev -w @master-connect/web",
+    "dev:admin": "npm run dev -w @master-connect/admin",
+    "dev:web-admin": "concurrently -n web,admin -c cyan,magenta \"npm run dev:web\" \"npm run dev:admin\"",
+    "dev:mobile": "npm run start -w master-connect",
+    "validate": "node scripts/validate.mjs",
+    "db:migrate": "npm run prisma:migrate -w @master-connect/api",
+    "db:seed": "npm run prisma:seed -w @master-connect/api",
+    "lint": "npm run lint --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "expo-router": "^57.0.24"
+  },
+  "overrides": {
+    "react-native": "0.86.3",
+    "@react-native/codegen": "0.86.3",
+    "@react-native/babel-plugin-codegen": "0.86.3"
+  }
+}
